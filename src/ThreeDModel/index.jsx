@@ -1,11 +1,20 @@
 import { Canvas } from "@react-three/fiber";
-import { Fragment, useState } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
-
+import { planets } from "@/components/Planet";
 import Controls from "./Controls";
-import Panel from "./Panel";
 import Planet from "./Planet";
 import Sun from "./Sun";
+import Earth from "./Earth";
+// New component for Near-Earth Comet visualization
+const NEComet = ({ object, position, color = "#ffffff" }) => {
+  return (
+    <mesh position={[position.x, position.y, position.z]}>
+      <sphereGeometry args={[0.1, 32, 32]} />
+      <meshStandardMaterial color={color} />
+    </mesh>
+  );
+};
 
 export default function ThreeDModel() {
   const [selectedPlanet, setSelectedPlanet] = useState(null);
@@ -14,73 +23,42 @@ export default function ThreeDModel() {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPlanetInfo, setShowPlanetInfo] = useState(true);
+  const [viewMode, setViewMode] = useState("solar-system"); // 'solar-system' or 'nec'
 
-  const planets = [
-    {
-      name: "mercury",
-      speed: 48,
-      position: 1.75,
-      color: "white",
-      size: 4879.4,
-      photo: "/mercury.jpg",
-    },
-    {
-      name: "venus",
-      speed: 35,
-      position: 2.5,
-      color: "orange",
-      size: 12104,
-      photo: "/venus.jpg",
-    },
-    {
-      name: "earth",
-      speed: 30,
-      position: 3.5,
-      color: "#388cf3",
-      size: 12742,
-      photo: "/earth.jpg",
-    },
-    {
-      name: "mars",
-      speed: 24,
-      position: 4.5,
-      color: "red",
-      size: 6779,
-      photo: "/mars.jpg",
-    },
-    {
-      name: "jupiter",
-      speed: 13,
-      position: 6,
-      color: "orange",
-      size: 139820,
-      photo: "/jupter.jpg",
-    },
-    {
-      name: "saturn",
-      speed: 10,
-      position: 8,
-      color: "yellow",
-      size: 116460,
-      photo: "/saturn.jpg",
-    },
-    {
-      name: "uranus",
-      speed: 7,
-      position: 10,
-      color: "lightBlue",
-      size: 50724,
-      photo: "/uranus.jpg",
-    },
-    {
-      name: "neptune",
-      speed: 5,
-      position: 11.5,
-      color: "purple",
-      size: 49244,
-      photo: "/neptune.jpg",
-    },
-  ];
+  const [necData, setNecData] = useState([]);
+  // Fetch NEC data
+  useEffect(() => {
+    const fetchNECData = async () => {
+      try {
+        const response = await fetch(
+          "https://data.nasa.gov/resource/b67r-rgxc.json"
+        ); // Replace with your actual API endpoint
+        const data = await response.json();
+        setNecData(data);
+      } catch (error) {
+        console.error("Error fetching NEC data:", error);
+      }
+    };
+
+    if (viewMode === "nec") {
+      fetchNECData();
+    }
+  }, [viewMode]);
+
+  // Convert orbital elements to Cartesian coordinates
+  const calculateNECPosition = (nec) => {
+    const a = (parseFloat(nec.q_au_1) + parseFloat(nec.q_au_2)) / 2; // Semi-major axis
+    const e = parseFloat(nec.e);
+    const i = (parseFloat(nec.i_deg) * Math.PI) / 180;
+    const omega = (parseFloat(nec.w_deg) * Math.PI) / 180;
+
+    // Simple position calculation (you might want to make this more accurate)
+    const x = a * Math.cos(omega);
+    const y = a * Math.sin(omega) * Math.cos(i);
+    const z = a * Math.sin(omega) * Math.sin(i);
+
+    return { x, y, z };
+  };
 
   const handlePlanetClick = (planet) => {
     if (selectedPlanet?.name === planet.name) {
@@ -153,65 +131,78 @@ export default function ThreeDModel() {
         position: "relative",
       }}
     >
-      {/* Navbar */}
-      <nav
+      {/* View Mode Toggle */}
+      <div
         style={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          top: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 1000,
         }}
       >
-        <ul
+        <button
+          onClick={() => setViewMode("solar-system")}
           style={{
-            display: "flex",
-            justifyContent: "space-around",
-            listStyleType: "none",
-            padding: "10px 0",
-          }}
-        >
-          {planets.map((planet) => (
-            <li
-              key={planet.name}
-              style={{
-                color: "white",
-                cursor: "pointer",
-                padding: "5px 10px",
-                borderRadius: "4px",
-                backgroundColor:
-                  selectedPlanet?.name === planet.name
-                    ? "rgba(255, 255, 255, 0.2)"
-                    : "transparent",
-                transition: "background-color 0.3s ease",
-              }}
-              onClick={() => handlePlanetClick(planet)}
-            >
-              {planet.name.charAt(0).toUpperCase() + planet.name.slice(1)}
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      {/* Planet Info Box */}
-      {selectedPlanet && showPlanetInfo && (
-        <div
-          style={{
-            position: "absolute",
-            top: "50px",
-            right: "10px",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            padding: "15px",
-            borderRadius: "8px",
+            backgroundColor:
+              viewMode === "solar-system" ? "#3182ce" : "#4a5568",
             color: "white",
+            padding: "8px 16px",
+            margin: "0 4px",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
           }}
         >
-          <h3>{selectedPlanet.name.toUpperCase()}</h3>
-          <p>Orbital Speed: {selectedPlanet.speed} km/s</p>
-          <p>Size: {selectedPlanet.size} km</p>
-          <p>Color: {selectedPlanet.color}</p>
-        </div>
-      )}
+          Solar System
+        </button>
+        <button
+          onClick={() => setViewMode("nec")}
+          style={{
+            backgroundColor: viewMode === "nec" ? "#3182ce" : "#4a5568",
+            color: "white",
+            padding: "8px 16px",
+            margin: "0 4px",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Near-Earth Comets
+        </button>
+      </div>
+      {/* Main 3D Canvas */}
+      <Canvas shadows camera={{ position: [2, -16, 5] }}>
+        <ambientLight color="white" intensity={0.4} />
+
+        {viewMode === "solar-system" ? (
+          <Sun position={[0, 0, 0]} />
+        ) : (
+          <Earth position={[0, 0, 0]} />
+        )}
+
+        {viewMode === "solar-system" &&
+          planets.map((planet, i) => (
+            <Fragment key={i}>
+              <Planet {...planet} />
+            </Fragment>
+          ))}
+
+        {viewMode === "nec" &&
+          necData.map((nec, index) => {
+            const position = calculateNECPosition(nec);
+            return (
+              <NEComet
+                key={index}
+                object={nec}
+                position={position}
+                color={`hsl(${(index * 30) % 360}, 70%, 50%)`}
+              />
+            );
+          })}
+
+        <Controls />
+      </Canvas>
 
       {/* Chat Sidebar */}
       <div
@@ -331,19 +322,6 @@ export default function ThreeDModel() {
           </>
         )}
       </div>
-
-      <Canvas shadows camera={{ position: [2, -16, 5] }}>
-        <ambientLight color="white" intensity={0.4} />
-        <Sun position={[0, 0, 0]} />
-        {planets.map((planet, i) => (
-          <Fragment key={i}>
-            <Planet {...planet} />
-          </Fragment>
-        ))}
-        <Controls />
-      </Canvas>
-
-      <Panel />
     </div>
   );
 }
