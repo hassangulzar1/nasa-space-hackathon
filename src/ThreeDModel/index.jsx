@@ -19,7 +19,7 @@ const NEComet = ({ object, position, color = "#ffffff" }) => {
 // Component for Near-Earth Asteroid visualization
 const NEAsteroid = ({ object, position, color = "#ffffff", onClick }) => {
   // Increased base size and scaling factor for better visibility
-  const size = Math.max(0.3, object.diameter * 0.5);
+  const size = Math.max(0.3, object.diameter * 0.4);
 
   return (
     <mesh
@@ -123,7 +123,7 @@ export default function ThreeDModel() {
   const calculateAsteroidPosition = (asteroid) => {
     // Increased distance scaling for better spread
     const distance = parseFloat(asteroid.distance);
-    const scaledDistance = distance * 15; // Increased scale factor
+    const scaledDistance = distance * 40; // Increased scale factor
 
     const velocity = parseFloat(asteroid.velocity);
     const angle = (velocity / 30) * Math.PI;
