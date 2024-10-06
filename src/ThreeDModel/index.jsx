@@ -50,7 +50,7 @@ export default function ThreeDModel() {
   const [selectedObject, setSelectedObject] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState("");
+  const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState("solar-system");
   const [asteroidData, setAsteroidData] = useState([]);
@@ -156,27 +156,21 @@ export default function ThreeDModel() {
 
     return { x, y, z };
   };
+
   const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
-
-    const newMessage = {
-      text: inputMessage,
-      isUser: true,
-      timestamp: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-    setInputMessage("");
+    if (!query.trim()) return;
+    setQuery("");
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/query", {
+      const response = await fetch("http://127.0.0.1:5000//chatbot", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ queryText: inputMessage }),
+        body: JSON.stringify({ query }),
       });
+      console.log(response);
 
       const data = await response.json();
 
@@ -437,8 +431,8 @@ export default function ThreeDModel() {
             >
               <input
                 type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                 placeholder="Type your message..."
                 style={{
